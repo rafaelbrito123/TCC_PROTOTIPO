@@ -3,9 +3,8 @@ from deepface import DeepFace
 import numpy as np
 import os
 import time
+from config import EMBEDDINGS_DIR
 
-# Diretório para salvar os embeddings
-EMBEDDINGS_DIR = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\embeddings"
 os.makedirs(EMBEDDINGS_DIR, exist_ok=True)
 
 # Nome do usuário

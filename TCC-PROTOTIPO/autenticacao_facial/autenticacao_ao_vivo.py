@@ -3,9 +3,9 @@ import numpy as np
 from deepface import DeepFace
 import os
 import time
+from config import EMBEDDINGS_DIR
 
 # Caminho onde os embeddings estão salvos
-EMBEDDINGS_DIR = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\embeddings"
 THRESHOLD = 0.35  # Limite para considerar "autenticado"
 
 # Função para calcular distância do cosseno

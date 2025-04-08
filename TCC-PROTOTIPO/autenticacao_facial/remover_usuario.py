@@ -1,7 +1,6 @@
 import os
+from config import EMBEDDINGS_DIR
 
-# Caminho para os embeddings
-EMBEDDINGS_DIR = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\embeddings"
 
 # Lista os arquivos de usuários
 usuarios = [f for f in os.listdir(EMBEDDINGS_DIR) if f.endswith(".npy")]
