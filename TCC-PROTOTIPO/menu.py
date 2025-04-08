@@ -1,9 +1,11 @@
 import os
 import subprocess
-import sys
 
 EMBEDDINGS_DIR = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\embeddings"
-VENV_PYTHON = os.path.join(os.getcwd(), ".venv", "Scripts", "python.exe")
+SCRIPT_CADASTRO = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\cadastro_usuarios_avancado.py"
+SCRIPT_AUTENTICACAO = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\autenticacao_ao_vivo.py"
+VENV_PYTHON = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\.venv\Scripts\python.exe"
+  # Caminho do Python da venv
 
 def listar_usuarios():
     print("\n📂 Usuários cadastrados:")
@@ -32,16 +34,12 @@ def main():
         print("3. Remover usuário cadastrado")
         print("4. Listar usuários cadastrados")
         print("5. Sair")
-        try:
-            escolha = input("Escolha uma opção: ")
-        except KeyboardInterrupt:
-            print("\nEncerrando...")
-            break
+        escolha = input("Escolha uma opção: ")
 
         if escolha == '1':
-            subprocess.run([VENV_PYTHON, r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\cadastro_usuarios_avancado.py"])
+            subprocess.run([VENV_PYTHON, SCRIPT_CADASTRO])
         elif escolha == '2':
-            subprocess.run([VENV_PYTHON, r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\autenticacao_ao_vivo.py"])
+            subprocess.run([VENV_PYTHON, SCRIPT_AUTENTICACAO])
         elif escolha == '3':
             remover_usuario()
         elif escolha == '4':
