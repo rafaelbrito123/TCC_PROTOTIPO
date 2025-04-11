@@ -3,13 +3,24 @@ import numpy as np
 import os
 import time
 import cv2
+import sys
 from config import EMBEDDINGS_DIR
+from PIL import ImageFont, ImageDraw, Image
 
 os.makedirs(EMBEDDINGS_DIR, exist_ok=True)
 
-import sys
+# Função para desenhar texto com acento usando PIL
+def draw_text_with_pil(frame, text, position=(20, 50), font_size=24, color=(255, 255, 255)):
+    image_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    draw = ImageDraw.Draw(image_pil)
+    try:
+        font = ImageFont.truetype("arial.ttf", font_size)
+    except:
+        font = ImageFont.load_default()
+    draw.text(position, text, font=font, fill=color)
+    return cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
 
-# Verifica se o nome do usuário foi passado como argumento
+# Nome do usuário
 if len(sys.argv) > 1:
     nome_usuario = sys.argv[1].strip().lower().replace(" ", "_")
 else:
@@ -17,46 +28,49 @@ else:
 
 caminho_embedding = os.path.join(EMBEDDINGS_DIR, f"{nome_usuario}.npy")
 
-# Instruções para o usuário
+# Instruções com acentos
 instrucoes = [
-    "Olhe para frente",
-    "Sorria",
-    "Vire o rosto levemente para a esquerda",
-    "Vire o rosto levemente para a direita",
-    "Olhe um pouco para cima",
-    "Olhe um pouco para baixo",
-    "Feche os olhos e abra",
-    "Faça uma expressão séria",
-    "Aproxime o rosto da câmera",
-    "Afaste um pouco o rosto"
+    "Olhe para frente", "Sorria", "Vire o rosto levemente para a esquerda",
+    "Vire o rosto levemente para a direita", "Olhe um pouco para cima",
+    "Olhe um pouco para baixo", "Feche os olhos e abra",
+    "Faça uma expressão séria", "Aproxime o rosto da câmera", "Afaste um pouco o rosto"
 ]
 
-# Inicia webcam com resolução menor (para suavizar o vídeo)
+# Inicia webcam
 cap = cv2.VideoCapture(0)
-cap.set(3, 320)  # largura
-cap.set(4, 240)  # altura
+cap.set(3, 320)
+cap.set(4, 240)
+
+# Pré-aquecimento da câmera (descarta os primeiros frames)
+for _ in range(10):
+    cap.read()
+
+if not cap.isOpened():
+    print("❌ Webcam não pôde ser iniciada.")
+    sys.exit(1)
 
 embeddings = []
-print(">> Iniciando captura automática...")
+print("📸 Iniciando captura automática...")
 
 for instrucao in instrucoes:
     print(f">> {instrucao}")
-    tempo_instrucao = 3
     inicio = time.time()
+    tempo_instrucao = 2.5
 
-    # Mostrar vídeo ao vivo com a instrução por alguns segundos
     while time.time() - inicio < tempo_instrucao:
         ret, frame = cap.read()
         if not ret:
-            print("Erro ao acessar a webcam.")
+            print("❌ Não foi possível ler frame da webcam.")
             break
 
-        frame_exibido = frame.copy()
-        cv2.putText(frame_exibido, instrucao, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 0), 2)
-        cv2.imshow("Cadastro Facial Avançado", frame_exibido)
-        cv2.waitKey(10)
+        exibido = draw_text_with_pil(frame.copy(), instrucao, position=(10, 10), font_size=22, color=(255, 255, 0))
+        cv2.imshow("Cadastro Facial Avançado", exibido)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            cap.release()
+            cv2.destroyAllWindows()
+            sys.exit()
 
-    # Captura frame final para o embedding
+    # Captura frame final para gerar embedding
     ret, frame = cap.read()
     if ret:
         try:
@@ -64,13 +78,15 @@ for instrucao in instrucoes:
             embeddings.append(embedding)
             print("✅ Captura registrada.")
         except Exception as e:
-            print("❌ Erro ao gerar embedding:", e)
+            print(f"❌ Erro ao gerar embedding: {e}")
+    else:
+        print("⚠ Frame final inválido.")
 
 # Encerra webcam
 cap.release()
 cv2.destroyAllWindows()
 
-# Salvar múltiplos embeddings do mesmo usuário (acumula no mesmo arquivo)
+# Salva embeddings
 if embeddings:
     novo_embedding = np.array(embeddings)
     if os.path.exists(caminho_embedding):
@@ -79,6 +95,6 @@ if embeddings:
             existente = np.expand_dims(existente, axis=0)
         novo_embedding = np.concatenate([existente, novo_embedding])
     np.save(caminho_embedding, novo_embedding)
-    print(f">> Cadastro finalizado. {len(novo_embedding)} embeddings salvos para {nome_usuario}")
+    print(f"✅ Cadastro finalizado: {len(novo_embedding)} embeddings salvos para {nome_usuario}.")
 else:
     print("⚠ Nenhum embedding foi salvo.")

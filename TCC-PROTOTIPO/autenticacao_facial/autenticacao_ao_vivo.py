@@ -4,6 +4,22 @@ import os
 import cv2
 from scipy.spatial.distance import cosine
 from config import EMBEDDINGS_DIR
+import subprocess
+import sys
+from scipy.spatial.distance import cosine
+from config import EMBEDDINGS_DIR
+from PIL import ImageFont, ImageDraw, Image
+
+# Função para desenhar texto com acento usando PIL
+def draw_text_with_pil(frame, text, position=(20, 50), font_size=32, color=(255, 255, 255)):
+    image_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+    draw = ImageDraw.Draw(image_pil)
+    try:
+        font = ImageFont.truetype("arial.ttf", font_size)
+    except:
+        font = ImageFont.load_default()
+    draw.text(position, text, font=font, fill=color)
+    return cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
 
 def carregar_todos_embeddings():
     usuarios_embeddings = {}
@@ -20,7 +36,7 @@ def carregar_todos_embeddings():
 def autenticar_usuario(frame, usuarios_embeddings, limiar=0.54):
     try:
         resultado = DeepFace.represent(frame, model_name="Facenet", enforce_detection=True)[0]["embedding"]
-    except Exception as e:
+    except Exception:
         return None
 
     for usuario, embeddings in usuarios_embeddings.items():
@@ -51,12 +67,20 @@ while True:
     if usuario_autenticado:
         texto = f"Autenticado: {usuario_autenticado}"
         cor = (0, 255, 0)
+        # Mostra mensagem e encerra a webcam
+        print(f"✅ Usuário {usuario_autenticado} autenticado!")
+        cap.release()
+        cv2.destroyAllWindows()
+
+        # Chama a interface de simulação de carro
+        subprocess.run([sys.executable, "simulador_carro_ui.py", usuario_autenticado])
+        break
+
     else:
         texto = "Rosto não reconhecido"
-        cor = (0, 0, 255)
+        cor = (255, 0, 0)
 
-    cv2.putText(frame, texto, (20, 50),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.9, cor, 2)
+    frame = draw_text_with_pil(frame, texto, (15, 10), font_size=30, color=cor)
 
     cv2.imshow("Autenticação Facial (Teste)", frame)
 
