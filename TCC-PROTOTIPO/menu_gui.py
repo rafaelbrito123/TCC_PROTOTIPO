@@ -42,7 +42,10 @@ def remover_usuario():
             tkinter.messagebox.showerror("Erro", f"Usuário '{nome}' não encontrado.")
 
 def cadastrar_usuario():
-    subprocess.run([PYTHON_EXEC, SCRIPT_CADASTRO])
+    nome = tkinter.simpledialog.askstring("Cadastro de Usuário", "Digite o nome do novo usuário:")
+    if nome:
+        nome = nome.strip().lower().replace(" ", "_")
+        subprocess.run([PYTHON_EXEC, SCRIPT_CADASTRO, nome])
 
 def autenticar_usuario():
     subprocess.run([PYTHON_EXEC, SCRIPT_AUTENTICACAO])
