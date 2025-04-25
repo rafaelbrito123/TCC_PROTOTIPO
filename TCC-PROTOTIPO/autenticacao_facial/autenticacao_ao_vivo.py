@@ -6,11 +6,15 @@ from scipy.spatial.distance import cosine
 from config import EMBEDDINGS_DIR
 import subprocess
 import sys
-from scipy.spatial.distance import cosine
-from config import EMBEDDINGS_DIR
+import serial
+import time
 from PIL import ImageFont, ImageDraw, Image
 
-# Função para desenhar texto com acento usando PIL
+# Ajuste aqui sua porta COM
+PORTA_ARDUINO = 'COM3'  # Substitua pela porta correta
+arduino = serial.Serial(PORTA_ARDUINO, 9600, timeout=1)
+time.sleep(2)  # Aguarda o Arduino reiniciar
+
 def draw_text_with_pil(frame, text, position=(20, 50), font_size=32, color=(255, 255, 255)):
     image_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
     draw = ImageDraw.Draw(image_pil)
@@ -38,7 +42,6 @@ def autenticar_usuario(frame, usuarios_embeddings, limiar=0.54):
         resultado = DeepFace.represent(frame, model_name="Facenet", enforce_detection=True)[0]["embedding"]
     except Exception:
         return None
-
     for usuario, embeddings in usuarios_embeddings.items():
         for emb_salvo in embeddings:
             distancia = cosine(resultado, emb_salvo)
@@ -46,10 +49,10 @@ def autenticar_usuario(frame, usuarios_embeddings, limiar=0.54):
                 return usuario
     return None
 
-# Carrega todos os embeddings salvos
+# Carrega os embeddings
 usuarios_embeddings = carregar_todos_embeddings()
 
-# Inicia a webcam
+# Inicia webcam
 cap = cv2.VideoCapture(0)
 cap.set(3, 640)
 cap.set(4, 480)
@@ -67,13 +70,16 @@ while True:
     if usuario_autenticado:
         texto = f"Autenticado: {usuario_autenticado}"
         cor = (0, 255, 0)
-        # Mostra mensagem e encerra a webcam
         print(f"✅ Usuário {usuario_autenticado} autenticado!")
+
+
+
         cap.release()
         cv2.destroyAllWindows()
+        arduino.close()
 
-        # Chama a interface de simulação de carro
-        subprocess.run([sys.executable, "simulador_carro_ui.py", usuario_autenticado])
+        # Inicia a simulação do carro
+        subprocess.run([sys.executable, r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\simulador_carro_ui.py", usuario_autenticado])
         break
 
     else:
@@ -81,7 +87,6 @@ while True:
         cor = (255, 0, 0)
 
     frame = draw_text_with_pil(frame, texto, (15, 10), font_size=30, color=cor)
-
     cv2.imshow("Autenticação Facial (Teste)", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -89,3 +94,4 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+arduino.close()
