@@ -1,40 +1,93 @@
 import tkinter as tk
-from tkinter import ttk
-import sys
+import threading
+import serial
 import time
+import pygame
 
-usuario = sys.argv[1] if len(sys.argv) > 1 else "Usuário"
+# Caminhos dos áudios
+som_ligando = "TCC-PROTOTIPO/sons/carro_ligando.wav"
+som_ligado = "TCC-PROTOTIPO/sons/carro_ligado.wav"
+som_desligando = "TCC-PROTOTIPO/sons/carro_desligando.wav"
 
-# Função para simular o "ligar o carro"
-def ligar_carro():
-    status_label.config(text="🔓 Rosto reconhecido com sucesso! Ligando o carro...", foreground="green")
-    root.update()
-    time.sleep(2)
-    painel_label.config(text="🚗 Carro ligado! Bem-vindo, {}!".format(usuario))
-    status_label.config(text="Sistema pronto.")
+# Inicia pygame mixer
+pygame.mixer.init()
 
-# Interface principal
+# Inicializa serial com o Arduino
+arduino = serial.Serial('COM3', 9600, timeout=1)
+
+# Funções de áudio
+def tocar_som(caminho, loop=False):
+    pygame.mixer.music.stop()
+    pygame.mixer.music.load(caminho)
+    pygame.mixer.music.play(-1 if loop else 0)
+    print(f"[AUDIO] Tocando: {caminho}")
+
+def parar_som():
+    pygame.mixer.music.stop()
+    print("[AUDIO] Som parado")
+
+# Interface
 root = tk.Tk()
-root.title("Simulador de Carro Inteligente")
-root.geometry("500x300")
-root.resizable(False, False)
+root.title("Simulador Automotivo")
+root.geometry("600x480")
+root.configure(bg="black")
 
-# Estilo visual
-style = ttk.Style(root)
-style.configure("TLabel", font=("Segoe UI", 14))
-style.configure("TButton", font=("Segoe UI", 12))
+status_label = tk.Label(root, text="Aguardando autenticação...", fg="white", bg="black", font=("Helvetica", 16))
+status_label.pack(pady=30)
 
-# Painel
-painel_frame = ttk.Frame(root, padding=20)
-painel_frame.pack(expand=True)
+def atualizar_interface(texto, cor="white"):
+    status_label.config(text=texto, fg=cor)
+    root.update_idletasks()
+    print(f"[INTERFACE] {texto}")
 
-painel_label = ttk.Label(painel_frame, text="Aguardando autenticação facial...", foreground="blue")
-painel_label.pack(pady=10)
+# Fecha janela com segurança
+def fechar():
+    parar_som()
+    root.destroy()
 
-status_label = ttk.Label(painel_frame, text="Sistema iniciando...")
-status_label.pack(pady=5)
+root.protocol("WM_DELETE_WINDOW", fechar)
 
-# Simula o carro ligando após 1 segundo
-root.after(1000, ligar_carro)
+# Thread que escuta a porta serial
+def escutar_serial():
+    while True:
+        try:
+            if arduino.in_waiting > 0:
+                linha = arduino.readline().decode().strip()
+                if linha:
+                    print(f"[SERIAL] {linha}")
 
+                if linha == "LIGAR":
+                    threading.Thread(target=sequencia_ligacao).start()
+
+                elif linha == "desligado":
+                    parar_som()
+                    tocar_som(som_desligando)
+                    atualizar_interface("Carro desligado", "red")
+                    time.sleep(2.0)
+                    root.destroy()
+        except Exception as e:
+            print("[ERRO SERIAL]", e)
+            break
+
+# Sequência de ligar carro
+def sequencia_ligacao():
+    atualizar_interface("Carro ligando...", "yellow")
+    tocar_som(som_ligando)
+    time.sleep(2.8)
+
+    arduino.write(b"ATIVAR\n")  # Ativa o relé/LED
+    tocar_som(som_ligado, loop=True)
+    atualizar_interface("Carro ligado", "green")
+
+# Simula reconhecimento facial
+def simular_reconhecimento():
+    time.sleep(2)
+    atualizar_interface("Rosto reconhecido. Pressione o botão físico.", "cyan")
+    arduino.write(b"PRONTO\n")
+
+# Inicia threads
+threading.Thread(target=escutar_serial, daemon=True).start()
+threading.Thread(target=simular_reconhecimento, daemon=True).start()
+
+# Inicia interface
 root.mainloop()
