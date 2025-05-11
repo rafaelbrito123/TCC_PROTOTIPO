@@ -1,11 +1,14 @@
-import cv2
-import numpy as np
 import os
 import sys
+import cv2
+import numpy as np
+import time
+import winsound
 from deepface import DeepFace
 from PIL import ImageFont, ImageDraw, Image
-from config import EMBEDDINGS_DIR
-import time
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.config import EMBEDDINGS_DIR
+
 
 def draw_text_with_pil(frame, text, position=(20, 50), font_size=24, color=(255, 255, 255)):
     image_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
@@ -16,6 +19,15 @@ def draw_text_with_pil(frame, text, position=(20, 50), font_size=24, color=(255,
         font = ImageFont.load_default()
     draw.text(position, text, font=font, fill=color)
     return cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
+
+def desenhar_barra_progresso(frame, progresso, total=5):
+    largura_barra = 200
+    altura_barra = 20
+    x, y = 20, frame.shape[0] - 40
+    progresso_largura = int((progresso / total) * largura_barra)
+    cv2.rectangle(frame, (x, y), (x + largura_barra, y + altura_barra), (180, 180, 180), 2)
+    cv2.rectangle(frame, (x, y), (x + progresso_largura, y + altura_barra), (0, 255, 0), -1)
+    return frame
 
 # Entrada do nome
 if len(sys.argv) > 1:
@@ -31,8 +43,8 @@ instrucoes = [
 ]
 
 cap = cv2.VideoCapture(0)
-cap.set(3, 320)
-cap.set(4, 240)
+cap.set(3, 640)  # Largura
+cap.set(4, 480)  # Altura
 
 for _ in range(10):
     cap.read()
@@ -43,7 +55,7 @@ if not cap.isOpened():
 
 detector = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-moldura_path = os.path.join(r'D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\imagens\guia_oval.png')
+moldura_path = os.path.join(os.path.dirname(__file__), "imagens", "guia_oval.png")
 if not os.path.exists(moldura_path):
     print(f"❌ Moldura não encontrada em {moldura_path}.")
     sys.exit(1)
@@ -54,9 +66,7 @@ embeddings = []
 
 print("📸 Iniciando cadastro... Pressione 'q' para sair.")
 
-for instrucao in instrucoes:
-    largura_anterior = None
-tolerancia = 15  # Tolerância em pixels para considerar como "estável"
+tolerancia = 15
 
 for instrucao in instrucoes:
     print(f">> {instrucao}")
@@ -65,7 +75,10 @@ for instrucao in instrucoes:
     largura_anterior = None
     texto_dinamico = "Posicione o rosto..."
 
-    while not capturado:
+    progresso = 0
+    capturas_por_instrucao = 5
+
+    while progresso < capturas_por_instrucao:
         ret, frame = cap.read()
         if not ret:
             continue
@@ -78,9 +91,8 @@ for instrucao in instrucoes:
             alpha_s = moldura_resized[:, :, 3] / 255.0
             alpha_l = 1.0 - alpha_s
             for c in range(3):
-                frame_overlay[:, :, c] = (alpha_s * moldura_resized[:, :, c] + alpha_l * frame_overlay[:, :, c])
-
-        frame_com_texto = draw_text_with_pil(frame_overlay.copy(), f"{instrucao} | {texto_dinamico}", (10, 10), 18, (255, 255, 0))
+                frame_overlay[:, :, c] = (alpha_s * moldura_resized[:, :, c] +
+                                          alpha_l * frame_overlay[:, :, c])
 
         cinza = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         rostos = detector.detectMultiScale(cinza, 1.1, 5)
@@ -103,27 +115,28 @@ for instrucao in instrucoes:
                         elif diferenca < -tolerancia:
                             texto_dinamico = "Você se afastou"
                         else:
-                            texto_dinamico = "Ok! Capturando..."
-                            cv2.imshow("Cadastro Facial", draw_text_with_pil(frame_overlay.copy(), texto_dinamico, (10, 10)))
-                            cv2.waitKey(1000)
+                            texto_dinamico = f"Capturando ({progresso+1}/{capturas_por_instrucao})..."
+                            rosto_crop = frame[y:y+h, x:x+w]
                             try:
-                                rosto_crop = frame[y:y+h, x:x+w]
                                 embedding = DeepFace.represent(rosto_crop, model_name="Facenet", enforce_detection=True)[0]["embedding"]
                                 embeddings.append(embedding)
-                                print("✅ Captura registrada.")
-                                capturado = True
-                                break
+                                progresso += 1
+                                winsound.Beep(1000, 200)  # Beep de 200ms
+                                print(f"✅ Captura {progresso}/{capturas_por_instrucao}")
+                                time.sleep(0.2)
                             except Exception as e:
                                 print(f"❌ Erro ao gerar embedding: {e}")
                                 continue
                     largura_anterior = w
 
-        cv2.imshow("Cadastro Facial", frame_com_texto)
+        frame_com_texto = draw_text_with_pil(frame_overlay.copy(), f"{instrucao} | {texto_dinamico}", (10, 10), 18, (255, 255, 0))
+        frame_com_barra = desenhar_barra_progresso(frame_com_texto, progresso, capturas_por_instrucao)
+        cv2.imshow("Cadastro Facial", frame_com_barra)
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             cap.release()
             cv2.destroyAllWindows()
             sys.exit()
-
 
 cap.release()
 cv2.destroyAllWindows()

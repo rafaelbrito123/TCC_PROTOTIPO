@@ -1,11 +1,12 @@
+import sys
+import os
 from deepface import DeepFace
 import numpy as np
-import os
 import cv2
 from scipy.spatial.distance import cosine
-from config import EMBEDDINGS_DIR
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.config import EMBEDDINGS_DIR
 import subprocess
-import sys
 import serial
 import time
 from PIL import ImageFont, ImageDraw, Image
@@ -37,17 +38,29 @@ def carregar_todos_embeddings():
             usuarios_embeddings[nome] = embeddings
     return usuarios_embeddings
 
-def autenticar_usuario(frame, usuarios_embeddings, limiar=0.54):
+def autenticar_usuario(frame, usuarios_embeddings, limiar=0.45):
     try:
         resultado = DeepFace.represent(frame, model_name="Facenet", enforce_detection=True)[0]["embedding"]
     except Exception:
         return None
+
+    menor_distancia = float("inf")
+    usuario_mais_proximo = None
+
     for usuario, embeddings in usuarios_embeddings.items():
         for emb_salvo in embeddings:
             distancia = cosine(resultado, emb_salvo)
-            if distancia < limiar:
-                return usuario
-    return None
+            if distancia < menor_distancia:
+                menor_distancia = distancia
+                usuario_mais_proximo = usuario
+
+    if menor_distancia < limiar:
+        print(f"[DEBUG] Menor distância: {menor_distancia:.4f} (usuário: {usuario_mais_proximo})")
+        return usuario_mais_proximo
+    else:
+        print(f"[DEBUG] Nenhum usuário abaixo do limiar. Menor distância: {menor_distancia:.4f}")
+        return None
+
 
 # Carrega os embeddings
 usuarios_embeddings = carregar_todos_embeddings()
@@ -79,7 +92,7 @@ while True:
         arduino.close()
 
         # Inicia a simulação do carro
-        subprocess.run([sys.executable, r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\simulador_carro_ui.py", usuario_autenticado])
+        subprocess.run([sys.executable, "TCC-PROTOTIPO\simulador\simulador_carro_ui.py", usuario_autenticado])
         break
 
     else:
