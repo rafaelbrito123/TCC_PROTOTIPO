@@ -2,14 +2,12 @@ import os
 import subprocess
 import customtkinter as ctk
 import tkinter.messagebox
-
-# Diretório onde estão salvos os embeddings .npy
-EMBEDDINGS_DIR = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\embeddings"
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.config import PYTHON_EXEC, SCRIPT_AUTENTICACAO, SCRIPT_CADASTRO, EMBEDDINGS_DIR
 
 # Caminho dos scripts
-PYTHON_EXEC = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\.venv\Scripts\python.exe"
-SCRIPT_CADASTRO = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\cadastro_usuarios_avancado.py"
-SCRIPT_AUTENTICACAO = r"D:\OneDrive\Documentos\TCC-PROTOTIPO\TCC-PROTOTIPO\autenticacao_facial\autenticacao_ao_vivo.py"
+
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
