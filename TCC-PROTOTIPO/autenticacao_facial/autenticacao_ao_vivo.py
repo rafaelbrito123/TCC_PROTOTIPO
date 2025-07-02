@@ -15,10 +15,10 @@ from PIL import ImageFont, ImageDraw, Image
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.config import EMBEDDINGS_DIR
 
-SOM_LIGANDO = "TCC_PROTOTIPO\\sons\\carro_ligando.wav"
-SOM_LIGADO = "TCC_PROTOTIPO\\sons\\carro_ligado.wav"
-SOM_DESLIGANDO = "TCC_PROTOTIPO\\sons\\carro_desligando.wav"
-ALARME_SOM = "TCC_PROTOTIPO\\sons\\alarm.wav"
+SOM_LIGANDO = "TCC-PROTOTIPO\\sons\\carro_ligando.wav"
+SOM_LIGADO = "TCC-PROTOTIPO\\sons\\carro_ligado.wav"
+SOM_DESLIGANDO = "TCC-PROTOTIPO\\sons\\carro_desligando.wav"
+ALARME_SOM = "TCC-PROTOTIPO\\sons\\alarm.wav"
 
 # Inicializa som
 pygame.mixer.init()
@@ -151,7 +151,7 @@ def iniciar_simulador(nome_usuario):
 
 # Autenticação Facial
 usuarios_embeddings = carregar_todos_embeddings()
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(2)
 cap.set(3, 640)
 cap.set(4, 480)
 
